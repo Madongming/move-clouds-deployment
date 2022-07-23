@@ -1,0 +1,11 @@
+apiVersion: deployment.github.com/v1
+kind: SingleDeployment
+metadata:
+  name: singledeployment-sample
+spec:
+  # TODO(user): Add fields here
+  port: 80
+  ingressDomain: cloud.madongming.com
+  image: nginx:latest
+  replicas: 1
+  

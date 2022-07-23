@@ -1,0 +1,24 @@
+# permissions for end users to edit singledeployments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: singledeployment-editor-role
+rules:
+- apiGroups:
+  - deployment.github.com
+  resources:
+  - singledeployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - deployment.github.com
+  resources:
+  - singledeployments/status
+  verbs:
+  - get

@@ -1,0 +1,16 @@
+domain: github.com
+layout:
+- go.kubebuilder.io/v3
+projectName: move-clouds-deployment
+repo: github.com/Madongming/move-clouds-deployment
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: github.com
+  group: deployment
+  kind: SingleDeployment
+  path: github.com/Madongming/move-clouds-deployment/api/v1
+  version: v1
+version: "3"
