@@ -43,15 +43,28 @@ spec:
                 items:
                   type: string
                 type: array
+              expose:
+                description: Expose your instance
+                properties:
+                  ingressDomain:
+                    description: IngressDomain the instance will be added to ingress
+                      and accessed through the unified portal.
+                    type: string
+                  mode:
+                    description: Mode deployment mode, is NodePort or Ingress
+                    type: string
+                  nodePort:
+                    description: NodePort the install will be expose by NodePort mode
+                      with the port number
+                    format: int32
+                    type: integer
+                required:
+                - mode
+                type: object
               image:
                 description: Image The image used for deployment. If this item is
                   empty, build will be used to build the image, so only one of this
                   item and build can be empty. If both exist, this item will work
-                type: string
-              ingressDomain:
-                description: IngressDomain If there is a value, it means that the
-                  domain name is used to access through ingress, and the instance
-                  will be added to ingress and accessed through the unified portal.
                 type: string
               port:
                 description: Port The port this instance accesses, and the port you
@@ -66,6 +79,7 @@ spec:
                 description: StartCmd Start command, if empty, use the buit-in CMD/ENTRYPOINT
                 type: string
             required:
+            - expose
             - port
             type: object
           status:

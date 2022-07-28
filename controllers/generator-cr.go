@@ -5,11 +5,13 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"strings"
 	"text/template"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
 	deploymentv1 "github.com/Madongming/move-clouds-deployment/api/v1"
@@ -48,8 +50,17 @@ func newDeployment(emfs embed.FS, sd *deploymentv1.SingleDeployment) (*appsv1.De
 
 func newService(emfs embed.FS, sd *deploymentv1.SingleDeployment) (*corev1.Service, error) {
 	service := new(corev1.Service)
-	if err := yaml.Unmarshal(parseTemplate(emfs, "service.yaml", sd), service); err != nil {
-		return service, err
+	switch strings.ToLower(sd.Spec.Expose.Mode) {
+	case ServiceNodePort:
+		if err := yaml.Unmarshal(parseTemplate(emfs, "service-nodeport.yaml", sd), service); err != nil {
+			return service, err
+		}
+	case ServiceIngress:
+		if err := yaml.Unmarshal(parseTemplate(emfs, "service-ingress.yaml", sd), service); err != nil {
+			return service, err
+		}
+	default:
+		return service, field.Invalid(field.NewPath("spec").Child("expose", "mode"), sd.Spec.Expose.Mode, "not be support. Must is `NodePort` or `Ingress`")
 	}
 
 	return service, nil

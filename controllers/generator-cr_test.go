@@ -95,21 +95,21 @@ func Test_newDeployment(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "Test case 1",
+			name: "Test case create ingress mode for deployment",
 			args: args{
 				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_1.yaml"),
+				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
 			},
-			want:    makeDeployment("deployment_except_1.yaml"),
+			want:    makeDeployment("deployment_except_ingress.yaml"),
 			wantErr: false,
 		},
 		{
-			name: "Test case 2",
+			name: "Test case create nodeport mode for deployment",
 			args: args{
 				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_2.yaml"),
+				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_nodeport.yaml"),
 			},
-			want:    makeDeployment("deployment_except_2.yaml"),
+			want:    makeDeployment("deployment_except_nodeport.yaml"),
 			wantErr: false,
 		},
 	}
@@ -140,21 +140,21 @@ func Test_newService(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "Test case 1",
+			name: "Test case create ingress mode for service",
 			args: args{
 				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_1.yaml"),
+				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
 			},
-			want:    makeService("service_except_1.yaml"),
+			want:    makeService("service_except_ingress.yaml"),
 			wantErr: false,
 		},
 		{
-			name: "Test case 2",
+			name: "Test case create nodeport mode for service",
 			args: args{
 				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_2.yaml"),
+				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_nodeport.yaml"),
 			},
-			want:    makeService("service_except_2.yaml"),
+			want:    makeService("service_except_nodeport.yaml"),
 			wantErr: false,
 		},
 	}
@@ -185,21 +185,12 @@ func Test_newIngress(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "Test case 1",
+			name: "Test case create ingress mode for ingress",
 			args: args{
 				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_1.yaml"),
+				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
 			},
-			want:    makeIngress("ingress_except_1.yaml"),
-			wantErr: false,
-		},
-		{
-			name: "Test case 2",
-			args: args{
-				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_2.yaml"),
-			},
-			want:    makeIngress("ingress_except_2.yaml"),
+			want:    makeIngress("ingress_except_ingress.yaml"),
 			wantErr: false,
 		},
 	}

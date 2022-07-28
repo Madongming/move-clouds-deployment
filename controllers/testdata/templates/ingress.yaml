@@ -5,7 +5,7 @@ metadata:
   namespace: {{.ObjectMeta.Namespace}}
 spec:
   rules:
-    - host: {{.Spec.IngressDomain}}
+    - host: {{.Spec.Expose.IngressDomain}}
       http:
         paths:
           - path: /
@@ -14,5 +14,5 @@ spec:
               service:
                 name: {{.ObjectMeta.Name}}
                 port:
-                  number: 8080
+                  number: {{.Spec.Expose.ServicePort}}
   ingressClassName: nginx

@@ -20,6 +20,7 @@ import (
 	"context"
 	"embed"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -123,13 +124,13 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 	///////////////////////////////////////////////////////////////
 
-	// Ingress mode
+	// Ingress mode or NodePort mode
 	// Watch and create/update Service and Ingress
 	///////////////////////////////////////////////////////////////
 	// Deal with Service
 	service := new(corev1.Service)
 	if err := r.Client.Get(ctx, req.NamespacedName, service); err != nil {
-		if errors.IsNotFound(err) && sd.Spec.IngressDomain != "" {
+		if errors.IsNotFound(err) {
 			// Its a "not found error" that is none a service, create it.
 			// Create service
 			sd.Status.Phase = deploymentv1.StatusCreating
@@ -143,10 +144,23 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				}
 				return ctrl.Result{}, err
 			}
-		}
-		if !errors.IsNotFound(err) && sd.Spec.IngressDomain != "" {
+		} else {
 			// Its not a "not found err", throw it
 			logger.Error(err, "Create service failed")
+			sd.Status.Phase = deploymentv1.StatusFailed
+			if err := r.Status().Update(ctx, sd); err != nil {
+				logger.Error(err, "update status failed")
+				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+			}
+			return ctrl.Result{}, err
+		}
+	} else {
+		// The service is exist update the service
+
+		// Update service
+		if err := r.updateService(ctx, logger, sd, service); err != nil {
+			// update failed
+			logger.Error(err, "update Service failed")
 			sd.Status.Phase = deploymentv1.StatusFailed
 			if err := r.Status().Update(ctx, sd); err != nil {
 				logger.Error(err, "update status failed")
@@ -155,71 +169,33 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 			return ctrl.Result{}, err
 		}
-	} else {
-		if sd.Spec.IngressDomain != "" {
-			// The service is exist and ingressDomain is set not empty, update the service
-
-			// Update service
-			if err := r.updateService(ctx, logger, sd, service); err != nil {
-				// update failed
-				logger.Error(err, "update Service failed")
-				sd.Status.Phase = deploymentv1.StatusFailed
-				if err := r.Status().Update(ctx, sd); err != nil {
-					logger.Error(err, "update status failed")
-					return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-				}
-
-				return ctrl.Result{}, err
-			}
-		} else {
-			// The service is exist, but ingressDomain is set empty, delete the service
-
-			// set status is deleting
-			sd.Status.Phase = deploymentv1.StatusDeleting
-			if err := r.Status().Update(ctx, sd); err != nil {
-				logger.Error(err, "update status failed")
-				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-			}
-
-			// Delete service
-			if err := r.deleteService(ctx, logger, service); err != nil {
-				// update failed
-				logger.Error(err, "delete Service failed")
-				sd.Status.Phase = deploymentv1.StatusFailed
-				if err := r.Status().Update(ctx, sd); err != nil {
-					logger.Error(err, "update status failed")
-					return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-				}
-
-				return ctrl.Result{}, err
-			}
-		}
 	}
 
 	// Deal with Ingress
 	ingress := new(netv1.Ingress)
 	if err := r.Client.Get(ctx, req.NamespacedName, ingress); err != nil {
-		if errors.IsNotFound(err) && sd.Spec.IngressDomain != "" {
-			// Its a "not found error" that is none an ingress, create it.
-			// Create ingress
-			sd.Status.Phase = deploymentv1.StatusCreating
-			if err := r.Status().Update(ctx, sd); err != nil {
-				logger.Error(err, "update status failed")
-				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-			}
-
-			if err := r.createIngress(ctx, logger, sd); err != nil {
-				// create failed
-				logger.Error(err, "Create Ingress failed")
-				sd.Status.Phase = deploymentv1.StatusFailed
+		if errors.IsNotFound(err) {
+			if strings.ToLower(sd.Spec.Expose.Mode) == "ingress" {
+				// Its a "not found error" that is none an ingress, create it.
+				// Create ingress
+				sd.Status.Phase = deploymentv1.StatusCreating
 				if err := r.Status().Update(ctx, sd); err != nil {
 					logger.Error(err, "update status failed")
 					return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 				}
-				return ctrl.Result{}, err
+
+				if err := r.createIngress(ctx, logger, sd); err != nil {
+					// create failed
+					logger.Error(err, "Create Ingress failed")
+					sd.Status.Phase = deploymentv1.StatusFailed
+					if err := r.Status().Update(ctx, sd); err != nil {
+						logger.Error(err, "update status failed")
+						return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+					}
+					return ctrl.Result{}, err
+				}
 			}
-		}
-		if !errors.IsNotFound(err) && sd.Spec.IngressDomain != "" {
+		} else {
 			// Its not a "not found err", throw it
 			logger.Error(err, "create ingress failed")
 			sd.Status.Phase = deploymentv1.StatusFailed
@@ -231,8 +207,8 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, err
 		}
 	} else {
-		if sd.Spec.IngressDomain != "" {
-			// The ingress is exist and ingressDomain is set not empty, update the ingress
+		if strings.ToLower(sd.Spec.Expose.Mode) == "ingress" {
+			// The ingress is exist and expose mode is ingress, update the ingress
 
 			// Update ingress
 			if err := r.updateIngress(ctx, logger, sd, ingress); err != nil {
@@ -246,7 +222,7 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 				return ctrl.Result{}, err
 			}
-		} else {
+		} else if strings.ToLower(sd.Spec.Expose.Mode) == "nodeport" {
 			// The ingress is exist, but ingressDomain is set empty, delete the ingress
 
 			// set status is deleting

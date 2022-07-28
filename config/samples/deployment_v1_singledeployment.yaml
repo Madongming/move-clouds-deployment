@@ -5,7 +5,10 @@ metadata:
 spec:
   # TODO(user): Add fields here
   port: 80
-  ingressDomain: cloud.madongming.com
   image: nginx:latest
   replicas: 1
+  expose:
+    mode: ingress
+    ingressDomain: cloud.madongming.com
+    servicePort: 30001
   

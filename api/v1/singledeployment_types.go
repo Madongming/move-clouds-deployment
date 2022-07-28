@@ -28,19 +28,12 @@ type SingleDeploymentSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of SingleDeployment. Edit singledeployment_types.go to remove/update
-	// Foo string `json:"foo,omitempty"`
-
-	// Port The port this instance accesses, and the port you want to expose
-	Port int `json:"port"`
-
-	// IngressDomain If there is a value, it means that the domain name is used to access through ingress, and the instance will be added to ingress and accessed through the unified portal.
-	//+optional
-	IngressDomain string `json:"ingressDomain,omitempty"`
-
 	// Image The image used for deployment. If this item is empty, build will be used to build the image, so only one of this item and build can be empty. If both exist, this item will work
 	//+optional
 	Image string `json:"image,omitempty"`
+
+	// Port The port this instance accesses, and the port you want to expose
+	Port int `json:"port"`
 
 	// Replicas How many replicas you want deployment, default is 1
 	//+optional
@@ -53,6 +46,27 @@ type SingleDeploymentSpec struct {
 	// Args Parameter list for the startup command, if empty, use the buit-in CMD/ENTRYPOINT
 	//+optional
 	Args []string `json:"args,omitempty"`
+
+	// Expose your instance
+	Expose *Expose `json:"expose"`
+}
+
+// Expose defines the desired state of expose instance
+type Expose struct {
+	// Mode deployment mode, is NodePort or Ingress
+	Mode string `json:"mode"`
+
+	// IngressDomain the instance will be added to ingress and accessed through the unified portal.
+	//+optional
+	IngressDomain string `json:"ingressDomain,omitempty"`
+
+	// NodePort the install will be expose by NodePort mode with the port number
+	//+optional
+	NodePort int32 `json:"nodePort,omitempty"`
+
+	// ServicePort the service resource use the port
+	//+optional
+	ServicePort int32 `json:"servicePort,omitempty"`
 }
 
 // SingleDeploymentStatus defines the observed state of SingleDeployment
