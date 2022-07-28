@@ -77,6 +77,10 @@ docker-build: test ## Build docker image with the manager.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
+.PHONY: docker-load
+docker-load:
+	kind load docker-image --name ${KIND_LOAD} ${IMG}
+
 ##@ Deployment
 
 ifndef ignore-not-found
@@ -131,3 +135,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: wait-deploy
+wait-deploy:
+	kubectl rollout status deploy/devopsx-controller-manager --timeout=5m -w  || kubectl get pods -o wide

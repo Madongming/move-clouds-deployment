@@ -13,59 +13,62 @@ cluster:
 log:
   # debug -1, info 0, warn 1, error 2
   level: -1
-#install:
-#  steps:
-#  - name: cert-manager
-#    command:
-#      cmd: make
-#      args: 
-#      - install-cert-manager
-#      - KIND_LOAD=e2e
-#      path: ../..
-#  - name: check-cert-manager
-#    command:
-#      cmd: make
-#      args:
-#      - wait-cert-manager
-#      path: ../..
-#  - name: load-image
-#    command:
-#      cmd: make
-#      args:
-#      - docker-load
-#      - KIND_LOAD=e2e
-#      path: ../..
-#  - name: install-crd
-#    command:
-#      cmd: make
-#      args:
-#      - install
-#      path: ../..
-#  - name: create-ns
-#    ignoreFail: true
-#    command:
-#      cmd: kubectl
-#      args:
-#      - create
-#      - ns
-#      - devopsx-system
-#      path: ../..
-#  - name: deploy
-#    command:
-#      cmd: make
-#      args:
-#      - deploy
-#      path: ../..
-#  - name: wait-deploy
-#    command:
-#      cmd: make
-#      args:
-#      - wait-deploy
-#      path: ../..
-#  - name: print-pods
-#    command:
-#      cmd: kubectl
-#      args:
-#      - get
-#      - pod
-#      - --all-namespaces
+install:
+  steps:
+  - name: cert-manager
+    command:
+      cmd: kubectl
+      args: 
+      - apply
+      -  -f
+      -  https://github.com/cert-manager/cert-manager/releases/download/v1.8.2/cert-manager.yaml
+      path: ../..
+  - name: ingress
+    command:
+      cmd: kubectl
+      args: 
+      - apply
+      -  -f
+      -  https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml
+      path: ../..
+  - name: docker-build
+    command:
+      cmd: make
+      args:
+        - docker-build
+        - IMG=elsove812/move-cloud/single-deployment:v0.0.1
+      path: ../..
+  - name: load-image
+    command:
+      cmd: make
+      args:
+      - docker-load
+      - IMG=elsove812/move-cloud/single-deployment:v0.0.1
+      - KIND_LOAD=e2e
+      path: ../..
+  - name: install-crd
+    command:
+      cmd: make
+      args:
+      - install
+      path: ../..
+  - name: deploy
+    command:
+      cmd: make
+      args:
+      - deploy
+      - IMG=elsove812/move-cloud/single-deployment:v0.0.1
+      path: ../..
+  #- name: wait-deploy
+  #  command:
+  #    cmd: make
+  #    args:
+  #    - wait-deploy
+  #    path: ../..
+  - name: print-pods
+    command:
+      cmd: kubectl
+      args:
+      - get
+      - pod
+      - --all-namespaces
