@@ -80,7 +80,7 @@ type SingleDeploymentStatus struct {
 /*
    //+kubebuilder:printcolumn:name="SomeRef",type=string,JSONPath=".spec.someRef.name"
 */
-//+kubebuilder:resource:scope=Namespaced,shortName={dsg}
+//+kubebuilder:resource:scope=Namespaced,shortName={sd}
 //+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // SingleDeployment is the Schema for the singledeployments API

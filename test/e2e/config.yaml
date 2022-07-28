@@ -1,0 +1,71 @@
+cluster:
+  kind:
+    name: e2e
+    retain: true
+    config: |+
+      kind: Cluster
+      apiVersion: kind.x-k8s.io/v1alpha4
+      nodes:
+      - role: control-plane
+        extraPortMappings:
+        - containerPort: 30001
+          hostPort: 30001
+log:
+  # debug -1, info 0, warn 1, error 2
+  level: -1
+#install:
+#  steps:
+#  - name: cert-manager
+#    command:
+#      cmd: make
+#      args: 
+#      - install-cert-manager
+#      - KIND_LOAD=e2e
+#      path: ../..
+#  - name: check-cert-manager
+#    command:
+#      cmd: make
+#      args:
+#      - wait-cert-manager
+#      path: ../..
+#  - name: load-image
+#    command:
+#      cmd: make
+#      args:
+#      - docker-load
+#      - KIND_LOAD=e2e
+#      path: ../..
+#  - name: install-crd
+#    command:
+#      cmd: make
+#      args:
+#      - install
+#      path: ../..
+#  - name: create-ns
+#    ignoreFail: true
+#    command:
+#      cmd: kubectl
+#      args:
+#      - create
+#      - ns
+#      - devopsx-system
+#      path: ../..
+#  - name: deploy
+#    command:
+#      cmd: make
+#      args:
+#      - deploy
+#      path: ../..
+#  - name: wait-deploy
+#    command:
+#      cmd: make
+#      args:
+#      - wait-deploy
+#      path: ../..
+#  - name: print-pods
+#    command:
+#      cmd: kubectl
+#      args:
+#      - get
+#      - pod
+#      - --all-namespaces

@@ -13,7 +13,7 @@ spec:
     listKind: SingleDeploymentList
     plural: singledeployments
     shortNames:
-    - dsg
+    - sd
     singular: singledeployment
   scope: Namespaced
   versions:
