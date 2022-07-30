@@ -124,6 +124,11 @@ func (in *SingleDeploymentSpec) DeepCopyInto(out *SingleDeploymentSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Environments != nil {
+		in, out := &in.Environments, &out.Environments
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Expose != nil {
 		in, out := &in.Expose, &out.Expose
 		*out = new(Expose)

@@ -1,0 +1,13 @@
+apiVersion: deployment.github.com/v1
+kind: SingleDeployment
+metadata:
+  name: singledeployment-sample-ingress
+  namespace: system
+spec:
+  port: 80
+  image: nginx:latest
+  replicas: 1
+  expose:
+    mode: ingress
+    ingressDomain: cloud.madongming.com
+    servicePort: 30001  

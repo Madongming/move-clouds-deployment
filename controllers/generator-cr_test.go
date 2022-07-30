@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"embed"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -9,7 +8,6 @@ import (
 	"testing"
 
 	deploymentv1 "github.com/Madongming/move-clouds-deployment/api/v1"
-	"github.com/Madongming/move-clouds-deployment/controllers/testdata"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -84,8 +82,7 @@ func makeIngress(filename string) *netv1.Ingress {
 
 func Test_newDeployment(t *testing.T) {
 	type args struct {
-		emfs embed.FS
-		sd   *deploymentv1.SingleDeployment
+		sd *deploymentv1.SingleDeployment
 	}
 	tests := []struct {
 		name    string
@@ -97,8 +94,7 @@ func Test_newDeployment(t *testing.T) {
 		{
 			name: "Test case create ingress mode for deployment",
 			args: args{
-				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
+				sd: makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
 			},
 			want:    makeDeployment("deployment_except_ingress.yaml"),
 			wantErr: false,
@@ -106,8 +102,7 @@ func Test_newDeployment(t *testing.T) {
 		{
 			name: "Test case create nodeport mode for deployment",
 			args: args{
-				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_nodeport.yaml"),
+				sd: makeSingleDeployment("deployment_v1_singledeployment_rc_nodeport.yaml"),
 			},
 			want:    makeDeployment("deployment_except_nodeport.yaml"),
 			wantErr: false,
@@ -115,7 +110,7 @@ func Test_newDeployment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newDeployment(tt.args.emfs, tt.args.sd)
+			got, err := newDeployment(tt.args.sd)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newDeployment() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -129,8 +124,7 @@ func Test_newDeployment(t *testing.T) {
 
 func Test_newService(t *testing.T) {
 	type args struct {
-		emfs embed.FS
-		sd   *deploymentv1.SingleDeployment
+		sd *deploymentv1.SingleDeployment
 	}
 	tests := []struct {
 		name    string
@@ -142,8 +136,7 @@ func Test_newService(t *testing.T) {
 		{
 			name: "Test case create ingress mode for service",
 			args: args{
-				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
+				sd: makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
 			},
 			want:    makeService("service_except_ingress.yaml"),
 			wantErr: false,
@@ -151,8 +144,7 @@ func Test_newService(t *testing.T) {
 		{
 			name: "Test case create nodeport mode for service",
 			args: args{
-				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_nodeport.yaml"),
+				sd: makeSingleDeployment("deployment_v1_singledeployment_rc_nodeport.yaml"),
 			},
 			want:    makeService("service_except_nodeport.yaml"),
 			wantErr: false,
@@ -160,7 +152,7 @@ func Test_newService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newService(tt.args.emfs, tt.args.sd)
+			got, err := newService(tt.args.sd)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -174,8 +166,7 @@ func Test_newService(t *testing.T) {
 
 func Test_newIngress(t *testing.T) {
 	type args struct {
-		emfs embed.FS
-		sd   *deploymentv1.SingleDeployment
+		sd *deploymentv1.SingleDeployment
 	}
 	tests := []struct {
 		name    string
@@ -187,8 +178,7 @@ func Test_newIngress(t *testing.T) {
 		{
 			name: "Test case create ingress mode for ingress",
 			args: args{
-				emfs: testdata.EmTestdata,
-				sd:   makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
+				sd: makeSingleDeployment("deployment_v1_singledeployment_rc_ingress.yaml"),
 			},
 			want:    makeIngress("ingress_except_ingress.yaml"),
 			wantErr: false,
@@ -196,7 +186,7 @@ func Test_newIngress(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newIngress(tt.args.emfs, tt.args.sd)
+			got, err := newIngress(tt.args.sd)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newIngress() error = %v, wantErr %v", err, tt.wantErr)
 				return

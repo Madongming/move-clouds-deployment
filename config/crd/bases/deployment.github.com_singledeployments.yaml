@@ -43,6 +43,12 @@ spec:
                 items:
                   type: string
                 type: array
+              environments:
+                description: Environments is the environment variable pair(name, value)
+                  when the instance is running, so it must be even.
+                items:
+                  type: string
+                type: array
               expose:
                 description: Expose your instance
                 properties:
@@ -58,6 +64,10 @@ spec:
                       with the port number
                     format: int32
                     type: integer
+                  servicePort:
+                    description: ServicePort the service resource use the port
+                    format: int32
+                    type: integer
                 required:
                 - mode
                 type: object
@@ -69,6 +79,7 @@ spec:
               port:
                 description: Port The port this instance accesses, and the port you
                   want to expose
+                format: int32
                 type: integer
               replicas:
                 description: Replicas How many replicas you want deployment, default

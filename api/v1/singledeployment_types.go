@@ -33,7 +33,7 @@ type SingleDeploymentSpec struct {
 	Image string `json:"image,omitempty"`
 
 	// Port The port this instance accesses, and the port you want to expose
-	Port int `json:"port"`
+	Port int32 `json:"port"`
 
 	// Replicas How many replicas you want deployment, default is 1
 	//+optional
@@ -46,6 +46,10 @@ type SingleDeploymentSpec struct {
 	// Args Parameter list for the startup command, if empty, use the buit-in CMD/ENTRYPOINT
 	//+optional
 	Args []string `json:"args,omitempty"`
+
+	// Environments is the environment variable pair(name, value) when the instance is running, so it must be even.
+	//+optional
+	Environments []string `json:"environments"`
 
 	// Expose your instance
 	Expose *Expose `json:"expose"`

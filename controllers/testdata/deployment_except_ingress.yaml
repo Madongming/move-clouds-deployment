@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: singledeployment-sample-ingress
+  namespace: system
+  labels:
+    app: singledeployment-sample-ingress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: singledeployment-sample-ingress
+  template:
+    metadata:
+      labels:
+        app: singledeployment-sample-ingress
+    spec:
+      containers:
+        - name: singledeployment-sample-ingress
+          image: nginx:latest
+          ports:
+            - containerPort: 80

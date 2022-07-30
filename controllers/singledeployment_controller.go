@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"embed"
 	"reflect"
 	"strings"
 	"time"
@@ -36,9 +35,6 @@ import (
 
 	deploymentv1 "github.com/Madongming/move-clouds-deployment/api/v1"
 )
-
-//go:embed templates
-var tpls embed.FS
 
 // SingleDeploymentReconciler reconciles a SingleDeployment object
 type SingleDeploymentReconciler struct {
@@ -273,7 +269,7 @@ func (r *SingleDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // private methods
 ///////////////////////////////////////////////////////////////
 func (r *SingleDeploymentReconciler) generateDeployment(sd *deploymentv1.SingleDeployment) (*appsv1.Deployment, error) {
-	deployment, err := newDeployment(tpls, sd)
+	deployment, err := newDeployment(sd)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +323,7 @@ func (r *SingleDeploymentReconciler) updateDeployment(ctx context.Context, logge
 }
 
 func (r *SingleDeploymentReconciler) generateService(sd *deploymentv1.SingleDeployment) (*corev1.Service, error) {
-	service, err := newService(tpls, sd)
+	service, err := newService(sd)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +336,7 @@ func (r *SingleDeploymentReconciler) generateService(sd *deploymentv1.SingleDepl
 }
 
 func (r *SingleDeploymentReconciler) generateIngress(sd *deploymentv1.SingleDeployment) (*netv1.Ingress, error) {
-	ingress, err := newIngress(tpls, sd)
+	ingress, err := newIngress(sd)
 	if err != nil {
 		return nil, err
 	}

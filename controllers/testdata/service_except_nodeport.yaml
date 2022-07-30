@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: singledeployment-sample-nodeport
+  namespace: default
+spec:
+  selector:
+    app: singledeployment-sample-nodeport
+  ports:
+    - name: http
+      protocol: TCP
+      port: 30001
+      targetPort: 80
+      nodePort: 80
+  type: NodePort

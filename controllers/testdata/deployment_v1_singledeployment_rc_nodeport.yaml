@@ -1,0 +1,13 @@
+apiVersion: deployment.github.com/v1
+kind: SingleDeployment
+metadata:
+  name: singledeployment-sample-nodeport
+  namespace: default
+spec:
+  port: 80
+  image: nginx:1.0
+  replicas: 2
+  expose:
+    mode: nodeport
+    nodePort: 80
+    servicePort: 30001  

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: singledeployment-sample-nodeport
+  namespace: default
+  labels:
+    app: singledeployment-sample-nodeport
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: singledeployment-sample-nodeport
+  template:
+    metadata:
+      labels:
+        app: singledeployment-sample-nodeport
+    spec:
+      containers:
+        - name: singledeployment-sample-nodeport
+          image: nginx:1.0
+          ports:
+            - containerPort: 80

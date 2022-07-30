@@ -1,18 +1,18 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{.ObjectMeta.Name}}
-  namespace: {{.ObjectMeta.Namespace}}
+  name: singledeployment-sample-ingress
+  namespace: system
 spec:
   rules:
-    - host: {{.Spec.Expose.IngressDomain}}
+    - host: cloud.madongming.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: {{.ObjectMeta.Name}}
+                name: singledeployment-sample-ingress
                 port:
-                  number: {{.Spec.Expose.ServicePort}}
+                  number: 30001
   ingressClassName: nginx
