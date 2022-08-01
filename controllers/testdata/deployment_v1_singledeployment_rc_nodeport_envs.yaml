@@ -11,3 +11,8 @@ spec:
     mode: nodeport
     nodePort: 80
     servicePort: 30001
+  environments:
+    - name: ENV_VAL_1
+      value: "123"
+    - name: ENV_VAL_2
+      value: "456"

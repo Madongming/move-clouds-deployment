@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -49,7 +50,7 @@ type SingleDeploymentSpec struct {
 
 	// Environments is the environment variable pair(name, value) when the instance is running, so it must be even.
 	//+optional
-	Environments []string `json:"environments"`
+	Environments []corev1.EnvVar `json:"environments,omitempty"`
 
 	// Expose your instance
 	Expose *Expose `json:"expose"`

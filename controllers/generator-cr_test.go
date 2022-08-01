@@ -107,6 +107,14 @@ func Test_newDeployment(t *testing.T) {
 			want:    makeDeployment("deployment_except_nodeport.yaml"),
 			wantErr: false,
 		},
+		{
+			name: "Test case create ingress mode for deployment with envs",
+			args: args{
+				sd: makeSingleDeployment("deployment_v1_singledeployment_rc_nodeport_envs.yaml"),
+			},
+			want:    makeDeployment("deployment_except_nodeport_envs.yaml"),
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -116,7 +124,7 @@ func Test_newDeployment(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newDeployment() = %v, want %v", got, tt.want)
+				t.Errorf("newDeployment() = %#v, want %#v", got, tt.want)
 			}
 		})
 	}

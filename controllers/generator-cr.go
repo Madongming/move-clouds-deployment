@@ -23,7 +23,8 @@ func newDeployment(sd *deploymentv1.SingleDeployment) (*appsv1.Deployment, error
 		newBaseContainer(
 			sd.Name,
 			sd.Spec.Image,
-			sd.Spec.Port),
+			sd.Spec.Port,
+			sd.Spec.Environments),
 	}
 
 	return &deploy, nil
@@ -105,7 +106,7 @@ func newBaseIngress(name string, namespace string) netv1.Ingress {
 	return i
 }
 
-func newBaseContainer(name, image string, port int32) corev1.Container {
+func newBaseContainer(name, image string, port int32, envs []corev1.EnvVar) corev1.Container {
 	c := corev1.Container{}
 	c.Name = name
 	c.Image = image
@@ -113,6 +114,10 @@ func newBaseContainer(name, image string, port int32) corev1.Container {
 		corev1.ContainerPort{
 			ContainerPort: port,
 		},
+	}
+	if envs != nil &&
+		len(envs) != 0 {
+		c.Env = envs
 	}
 
 	return c
