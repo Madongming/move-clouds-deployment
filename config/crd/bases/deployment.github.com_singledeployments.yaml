@@ -197,15 +197,11 @@ spec:
             description: SingleDeploymentStatus defines the observed state of SingleDeployment
             properties:
               conditions:
+                description: Conditions of single deployment
                 items:
                   description: Condition save the condition info for every condition
                     when call deployment, statefulset and service
                   properties:
-                    lastProbeTime:
-                      description: LastProbeTime indicate the time when check the
-                        status of this condition
-                      format: date-time
-                      type: string
                     lastTransitionTime:
                       description: LastTransitionTime indicate the time when this
                         condition happen to create or update
@@ -224,10 +220,9 @@ spec:
                       type: string
                     type:
                       description: Type indicate which type this condition is. it
-                        can be deployment, statefulset or service
+                        can be deployment, service or ingress
                       type: string
                   required:
-                  - lastProbeTime
                   - lastTransitionTime
                   - status
                   - type
@@ -236,6 +231,10 @@ spec:
               message:
                 description: Message Execution message
                 type: string
+              observedGeneration:
+                description: Reversions update recorder
+                format: int64
+                type: integer
               phase:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying

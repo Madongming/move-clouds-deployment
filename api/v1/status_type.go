@@ -1,9 +1,14 @@
 package v1
 
 const (
-	StatusCreating = "Creating"
-	StatusRunning  = "Running"
-	StatusSuccess  = "Success"
-	StatusFailed   = "Failed"
-	StatusDeleting = "Deleting"
+	StatusPhaseCreating = "Creating"
+	StatusPhaseRunning  = "Running"
+	StatusPhaseSuccess  = "Success"
+	StatusPhaseFailed   = "Failed"
+	StatusPhaseDeleting = "Deleting"
+)
+
+const (
+	StatusReasonDependsUnavailable = "DependsUnavailable"
+	StatusReasonDependsAvailable   = "DependsAvailable"
 )

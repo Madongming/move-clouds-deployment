@@ -12,12 +12,25 @@ const (
 )
 
 const (
-	ConditionReason = ""
+	ConditionTypeDeployment = "deployment"
+	ConditionTypeService    = "service"
+	ConditionTypeIngress    = "ingress"
+)
+
+const (
+	ConditionReasonDeploymentAvailable   = "NewDeploymentAvailable"
+	ConditionReasonDeploymentUnavailable = "NewDeploymentUnavailable"
+
+	ConditionReasonServiceAvailable   = "NewServiceAvailable"
+	ConditionReasonServiceUnavailable = "NewServiceUnavailable"
+
+	ConditionReasonIngressAvailable   = "NewIngressAvailable"
+	ConditionReasonIngressUnavailable = "NewIngressUnavailable"
 )
 
 // Condition save the condition info for every condition when call deployment, statefulset and service
 type Condition struct {
-	// Type indicate which type this condition is. it can be deployment, statefulset or service
+	// Type indicate which type this condition is. it can be deployment, service or ingress
 	Type string `json:"type"`
 
 	// Message indicate the message of this condition. When status is false it must exist
@@ -33,7 +46,4 @@ type Condition struct {
 
 	// LastTransitionTime indicate the time when this condition happen to create or update
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
-
-	// LastProbeTime indicate the time when check the status of this condition
-	LastProbeTime metav1.Time `json:"lastProbeTime"`
 }

@@ -90,8 +90,13 @@ type SingleDeploymentStatus struct {
 	// +optional
 	Reason string `json:"reason,omitempty"`
 
+	// Conditions of single deployment
 	// +optional
 	Conditions []Condition `json:"conditions,omitempty"`
+
+	// Reversions update recorder
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 //+kubebuilder:object:root=true

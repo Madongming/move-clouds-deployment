@@ -6,9 +6,9 @@ spec:
   # TODO(user): Add fields here
   port: 80
   image: nginx:latest
-  replicas: 1
+  replicas: 2
   expose:
     mode: ingress
     ingressDomain: cloud.madongming.com
-    servicePort: 30001
+    servicePort: 30002
   
