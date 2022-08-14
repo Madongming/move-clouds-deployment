@@ -69,7 +69,7 @@ type Expose struct {
 	//+optional
 	NodePort int32 `json:"nodePort,omitempty"`
 
-	// ServicePort the service resource use the port
+	// ServicePort the service resource use the port. If it is empty, set to be spec.port
 	//+optional
 	ServicePort int32 `json:"servicePort,omitempty"`
 }

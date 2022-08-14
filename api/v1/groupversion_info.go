@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1 contains API Schema definitions for the deployment v1 API group
-//+kubebuilder:object:generate=true
-//+groupName=deployment.github.com
+// +kubebuilder:object:generate=true
+// +groupName=deployment.github.com
 package v1
 
 import (

@@ -10,5 +10,3 @@ spec:
   expose:
     mode: ingress
     ingressDomain: cloud.madongming.com
-    servicePort: 30002
-  

@@ -165,7 +165,8 @@ spec:
                     format: int32
                     type: integer
                   servicePort:
-                    description: ServicePort the service resource use the port
+                    description: ServicePort the service resource use the port. If
+                      it is empty, set to be spec.port
                     format: int32
                     type: integer
                 required:

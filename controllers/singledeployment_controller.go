@@ -226,7 +226,7 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if err := r.Client.Get(ctx, req.NamespacedName, ingress); err != nil {
 		if errors.IsNotFound(err) {
 			// Its a "not found error" that is not exsit an ingress, create it.
-			if strings.ToLower(sdCopy.Spec.Expose.Mode) == "ingress" {
+			if strings.ToLower(sdCopy.Spec.Expose.Mode) == ServiceIngress {
 				// It is ingress mode, Create ingress
 				if errCreate := r.createIngress(ctx, logger, sdCopy); errCreate != nil {
 					// create failed
@@ -240,6 +240,11 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 						deploymentv1.ConditionReasonServiceUnavailable,
 					)
 				}
+			} else if strings.ToLower(sdCopy.Spec.Expose.Mode) == ServiceNodePort {
+				r.deleteConditions(
+					&sdCopy.Status,
+					deploymentv1.ConditionTypeIngress,
+				)
 			}
 		} else {
 			// Its not a "not found err", throw it
@@ -254,7 +259,7 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			)
 		}
 	} else {
-		if strings.ToLower(sd.Spec.Expose.Mode) == "ingress" {
+		if strings.ToLower(sd.Spec.Expose.Mode) == ServiceIngress {
 			// The ingress is exist and expose mode is ingress, update the ingress
 
 			// Update ingress
@@ -281,7 +286,7 @@ func (r *SingleDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					deploymentv1.ConditionReasonIngressAvailable,
 				)
 			}
-		} else if strings.ToLower(sd.Spec.Expose.Mode) == "nodeport" {
+		} else if strings.ToLower(sd.Spec.Expose.Mode) == ServiceNodePort {
 			// The ingress is exist, but mode is set nodeport, delete the ingress
 			// Delete ingress
 			if err := r.deleteIngress(ctx, logger, ingress); err != nil {
@@ -331,7 +336,7 @@ func (r *SingleDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // private methods
-///////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////
 func (r *SingleDeploymentReconciler) generateDeployment(sd *deploymentv1.SingleDeployment) (*appsv1.Deployment, error) {
 	deployment, err := newDeployment(sd)
 	if err != nil {
@@ -486,7 +491,7 @@ func (r *SingleDeploymentReconciler) deleteService(ctx context.Context, logger l
 
 func (r *SingleDeploymentReconciler) deleteIngress(ctx context.Context, logger logr.Logger, ingress *netv1.Ingress) error {
 	if err := r.Client.Delete(ctx, ingress); err != nil {
-		logger.Error(err, "Update New Ingress failed")
+		logger.Error(err, "Delete Ingress failed")
 		return err
 	}
 	return nil
@@ -571,8 +576,8 @@ func (r *SingleDeploymentReconciler) deleteConditions(
 			// Not the last one, swap with the last one, and drop the last one
 			sds.Conditions[index], sds.Conditions[len(sds.Conditions)-1] = sds.Conditions[len(sds.Conditions)-1], sds.Conditions[index]
 			sds.Conditions = sds.Conditions[: len(sds.Conditions)-1 : len(sds.Conditions)-1]
-			sds.ObservedGeneration += 1
 		}
+		sds.ObservedGeneration += 1
 	}
 }
 
