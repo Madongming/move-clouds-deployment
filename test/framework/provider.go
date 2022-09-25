@@ -6,61 +6,40 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// ClusterProvider interface to provide a cluster
-type ClusterProvider interface {
-	Validate(config *Config) (err error)
-	Deploy(config *Config) (ClusterConfig, error)
-	Destroy(config *Config) (err error)
-}
-
-// ClusterConfig configuration for kubernetes
 type ClusterConfig struct {
-	Name     string
-	Rest     *rest.Config `json:"-"`
-	MasterIP string
+	Name     string       // cluster的名字，用来创建cluster使用。
+	Rest     *rest.Config `json:"-"` // 比较底层的client，可以直接调用restfulapi，也可以用生成高级client，来直接访问k8s资源
+	MasterIP string       // 集群的master ip，在restful api测试的时候可能需要
 }
 
-// Factory basic multiple usage factory
-// for cluster provider, installer etc
-type Factory struct {
+type ClusterProvider interface {
+	Validate(config *Config) error
+	Deploy(config *Config) (ClusterConfig, error)
+	Destroy(config *Config) error
 }
 
-func (f Factory) basicCheck(config *Config) (err error) {
+// 1. 定义工厂对象
+type Factory struct{}
+
+// 2. 工厂对象中提供创建不同实现了provider的对象
+func (f Factory) Provider(config *Config) (ClusterProvider, error) {
+	// 1. 检查配置
 	if config.Viper == nil {
-		err = fmt.Errorf("needs to have a viper configuration in config")
+		return nil, fmt.Errorf("Viper is not init")
 	}
-	return
-}
 
-// Provider provides a ClusterProvider based on config
-func (f Factory) Provider(config *Config) (prov ClusterProvider, err error) {
-	if err = f.basicCheck(config); err != nil {
-		return
-	}
+	// 1.2 检查相关的配置
 	if config.Sub("cluster") == nil {
-		err = fmt.Errorf("there is no cluster configuration in configuration file")
-		return
+		return nil, fmt.Errorf("cluster config is empty")
 	}
+
 	cluster := config.Sub("cluster")
-	// TODO: change to a more coding friendly method
+
+	// 2. 判断创建k8s cluster的插件，调用插件来创建
 	switch {
 	case cluster.Sub("kind") != nil:
-		prov = NewKindProvider(config.Logger.WithName("kind"))
+		return new(KindProvider), nil
 	default:
-		err = fmt.Errorf("selected cluster configuration \"%#v\" not supported", cluster.AllSettings())
+		return nil, fmt.Errorf("Not support porvider %#v", cluster.AllSettings())
 	}
-	return
-}
-
-// Installer installing stuff
-func (f Factory) Installer(config *Config) (inst *Installer, err error) {
-	if err = f.basicCheck(config); err != nil {
-		return
-	}
-	inst = NewInstaller(config)
-	if config.Sub("install") == nil {
-		// return no-op installer
-		return
-	}
-	return
 }

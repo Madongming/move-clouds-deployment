@@ -9,3 +9,6 @@ _artifacts/
 _rundir/
 
 test/e2e/e2e.xml
+
+# backup file
+*.bak

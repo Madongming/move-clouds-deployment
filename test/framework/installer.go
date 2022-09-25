@@ -3,236 +3,154 @@ package framework
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// Installer basic interface for installer
+// 1. 执行i := NewInstaller(config)
+// 2. 执行i.Install(clusterConfig)
+
 type Installer struct {
 	Steps []*Install
 
 	config *Config
 	once   sync.Once
-	logr.Logger
+	stdout io.Writer
+	stderr io.Writer
 }
 
-// NewInstaller inits a new installer
 func NewInstaller(config *Config) *Installer {
-	return &Installer{config: config, Steps: []*Install{}}
-}
-
-// WithLogger injects a logger
-func (i *Installer) WithLogger(logger logr.Logger) {
-	i.Logger = logger
+	return &Installer{
+		stdout: config.Stdout,
+		stderr: config.Stderr,
+	}
 }
 
 func (i *Installer) init() (err error) {
+	// 只能执行一次
 	i.once.Do(func() {
 		i.Steps = []*Install{}
-		i.Logger = i.config.WithName("installer")
 
+		// 判断相关的配置不为空
 		if i.config == nil || i.config.Sub("install") == nil {
+			err = fmt.Errorf("config format error")
 			return
 		}
-		installer := &Installer{}
-		err = i.config.Sub("install").Unmarshal(installer)
-		if err != nil {
-			i.Error(err, "install unmarshal error", "config", i.config.Sub("install"))
+
+		installer := new(Installer)
+		if err = i.config.Sub("install").Unmarshal(installer); err != nil {
 			return
 		}
+
 		if installer.Steps != nil {
 			i.Steps = installer.Steps
-		}
-		if len(i.Steps) > 0 {
-			for _, inst := range i.Steps {
-				inst.init()
-				if inst.install == nil {
-					continue
-				}
-				if inject, ok := inst.install.(LoggerInjector); ok {
-					inject.WithLogger(i.Logger.WithName(inst.Name))
-				}
-				if inject, ok := inst.install.(WriterInjector); ok {
-					inject.WithWriter(i.config.Stdout)
-				}
-			}
 		}
 	})
 	return
 }
 
-// Install executes install commands
-func (i *Installer) Install(clusterConfig ClusterConfig) (err error) {
-	i.V(1).Info("Install start", "install", i)
-	if err = i.init(); err != nil {
-		return
+func (i *Installer) Install(clusterConfig ClusterConfig) error {
+	// 1. 执行初始化
+	if err := i.init(); err != nil {
+		return err
 	}
-	i.V(1).Info("Will install", "len", len(i.Steps), "i", i)
+
+	// 2. 判断steps中是否有任务
 	if len(i.Steps) == 0 {
-		return
+		return nil
 	}
-	i.Info("Validating install steps...")
+
+	// 3. 遍历steps，执行每一个任务的validata函数
 	root := field.NewPath("install")
-	for idx, inst := range i.Steps {
-		fld := root.Index(idx)
-		if err = inst.Validate(fld); err != nil {
-			i.Error(err, "install validation")
-			return
+	for index, inst := range i.Steps {
+		fld := root.Index(index)
+		if err := inst.validate(fld); err != nil {
+			return err
 		}
 	}
 
-	// validates then installs
-	i.Info("Installing...")
+	// 4. 遍历steps，执行每一个任务的install函数
 	for _, inst := range i.Steps {
-		if err = inst.Install(clusterConfig); err != nil {
-			if inst.IgnoreFail {
-				i.V(1).Info("installer failed but will ignore", "name", inst.Name, "error", err)
-			} else {
-				i.Error(err, "installer error", "name", inst.Name)
-				return
-			}
+		if err := inst.install(clusterConfig); err != nil {
+			return err
 		}
 	}
-	return
+
+	// 5. 设置标准输入输出
+	for _, inst := range i.Steps {
+		inst.stdout = i.stdout
+		inst.stderr = i.stderr
+	}
+
+	return nil
 }
 
-// InstallExecuter executes a predefined install
-type InstallExecuter interface {
-	Install(ClusterConfig) (err error)
-	Validate(fld *field.Path) field.ErrorList
-}
-
-// Install expands to support multiple install methods using specific implementations
-// currently only supports running commands on the OS
-// but can be easily expanded to provide other install methods like helm, kubectl apply etc.
 type Install struct {
 	Name       string
-	IgnoreFail bool
-	Command    *CommandInstall
+	IngoreFail bool
+	Cmd        string
+	Args       []string
+	Path       string
 
-	install InstallExecuter
+	stdout io.Writer
+	stderr io.Writer
 }
 
-func (c *Install) init() {
-	switch {
-	case c.Command != nil:
-		c.install = c.Command
-		if c.Command.Std == nil {
-			c.Command.Std = os.Stdout
-		}
-	}
-}
-
-// Validate validates basic install
-func (c *Install) Validate(root *field.Path) (err error) {
+func (i *Install) validate(root *field.Path) error {
 	errs := field.ErrorList{}
-	if c.Name == "" {
-		errs = append(errs, field.Invalid(root.Child("name"), c.Name, "cannot be empty"))
+	// 1. 验证 name 字段
+	if strings.TrimSpace(i.Name) == "" {
+		errs = append(errs, field.Invalid(root.Child("name"), i.Name, "Cannot be empty"))
 	}
-	if c.install == nil {
-		errs = append(errs, field.Invalid(root, c, `needs to define a type of installation method. Supported: [command]`))
+	// 2. 验证 cmd 字段
+	if strings.TrimSpace(i.Cmd) == "" {
+		errs = append(errs, field.Invalid(root.Child("cmd"), i.Cmd, "Cannot be empty"))
 	}
 
-	err = errs.ToAggregate()
-	return
+	// 3. 验证path，如果为空，给出默认值 "."
+	if strings.TrimSpace(i.Path) == "" {
+		i.Path = "."
+	}
+
+	// 聚合错误
+	err := errs.ToAggregate()
+
+	return err
 }
 
-// Install executes install command for initiated installer
-// needs to execute init function first
-func (c *Install) Install(config ClusterConfig) (err error) {
-	c.init()
-	if c.install == nil {
-		err = fmt.Errorf("Install implementation not defined")
-		return
-	}
-	err = c.install.Install(config)
-	return
-}
-
-// CommandInstall uses commands to execute
-type CommandInstall struct {
-	Cmd  string
-	Args []string
-	Path string
-	logr.Logger
-	Std io.Writer
-}
-
-var _ LoggerInjector = &CommandInstall{}
-
-// WithLogger allows logger to be injected
-func (c *CommandInstall) WithLogger(log logr.Logger) {
-	c.Logger = log
-}
-
-// WithWriter allows writer to injected
-func (c *CommandInstall) WithWriter(wrt io.Writer) {
-	c.Std = wrt
-}
-
-// Validate validates a command
-func (c *CommandInstall) Validate(root *field.Path) (errs field.ErrorList) {
-	errs = field.ErrorList{}
-	if strings.TrimSpace(c.Cmd) == "" {
-		errs = append(errs, field.Invalid(root.Child("cmd"), c.Cmd, "cannot be empty"))
-	}
-	if len(c.Args) > 0 {
-		args := root.Child("args")
-		for idx, arg := range c.Args {
-			argIdx := args.Index(idx)
-			if strings.TrimSpace(arg) == "" {
-				errs = append(errs, field.Invalid(argIdx, arg, "cannot be empty"))
-			}
-		}
-	}
-	if c.Path == "" {
-		c.Path = "."
-	}
-	return
-}
-
-// Install installs using specified command
-func (c *CommandInstall) Install(clusterConfig ClusterConfig) (err error) {
-	var workdir string
-	workdir, err = os.Getwd()
-	c.V(1).Info("Starting path configuration", "cfg", clusterConfig)
+func (i *Install) install(config ClusterConfig) error {
+	// 1. 获取当前路径
+	currentDir, err := os.Getwd()
 	if err != nil {
-		c.Error(err, "error getting workdir")
-		return
+		return err
 	}
-	absPath := c.Path
+
+	absPath := i.Path
 	if !filepath.IsAbs(absPath) {
 		if absPath, err = filepath.Abs(absPath); err != nil {
-			c.Error(err, "error getting abs path")
-			return
+			return err
 		}
 	}
-	// should change path to run command
-	if workdir != absPath {
-		// change to desired path
-		if err = os.Chdir(c.Path); err != nil {
-			c.Error(err, "error changing current path")
-			return
+
+	// 2. 对比设置路径和当前路径，如果不同，则执行切换
+	if currentDir != absPath {
+		if err = os.Chdir(absPath); err != nil {
+			return err
 		}
-		// return to caller's context
-		defer os.Chdir(workdir)
 	}
-	cmd := exec.Command(c.Cmd, c.Args...)
-	cmd.Stderr = c.Std
-	cmd.Stdout = c.Std
-	err = cmd.Run()
-	return
 
-}
+	// 3. 退出此函数前，切换回之前的目录
+	defer func() { _ = os.Chdir(currentDir) }()
 
-// CommandInstaller executes commands
-type CommandInstaller struct {
-	log.Logger
+	// 4. 执行命令
+	cmd := exec.Command(i.Cmd, i.Args...)
+	cmd.Stdout = i.stdout
+	cmd.Stderr = i.stderr
+
+	return cmd.Run()
 }

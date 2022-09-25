@@ -4,143 +4,179 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
-
-	"github.com/go-logr/logr"
 )
 
-const (
-	kubectl = "kubectl"
-	config  = "config"
-)
-
-// KubectlConfig controls configuration for kubectl
-// useful to use command line tooling
 type KubectlConfig struct {
-	logr.Logger
 	Stdout io.Writer
 	Stderr io.Writer
 
 	previousContext string
 }
 
-// func NewKubectlConfig(logger log.Logger)
+var contextNameRegex = regexp.MustCompile("[^a-zA-Z0-9-_]")
 
-// Command starts command with std err and stdout
-func (c *KubectlConfig) Command(cmd string, args ...string) *exec.Cmd {
-	if c.Stderr == nil {
-		c.Stderr = os.Stderr
+func (k *KubectlConfig) getContextName(clusterConfig ClusterConfig) string {
+	return fmt.Sprintf("%s-context", contextNameRegex.ReplaceAllString(strings.ToLower(clusterConfig.Name), ""))
+}
+
+func (k *KubectlConfig) Command(cmd string, args ...string) *exec.Cmd {
+	if k.Stdout == nil {
+		k.Stdout = os.Stdout
 	}
-	if c.Stdout == nil {
-		c.Stdout = os.Stdout
+	if k.Stderr == nil {
+		k.Stderr = os.Stderr
 	}
+
 	command := exec.Command(cmd, args...)
-	command.Stderr = c.Stderr
-	command.Stdout = c.Stdout
+	command.Stdout = k.Stdout
+	command.Stderr = k.Stderr
 	return command
 }
 
-var contextNameRegex = regexp.MustCompile("[^a-zA-Z0-9-_]")
-
-func (c *KubectlConfig) getContextName(clusterConfig ClusterConfig) (name string) {
-	name = fmt.Sprintf("%s-context", contextNameRegex.ReplaceAllString(strings.ToLower(clusterConfig.Name), ""))
-	return
-}
-
-// SetContext set contexts
-// the main logic is arround getting the current context, store it
-// create a new context using the configuration given and switch to the new context
-func (c *KubectlConfig) SetContext(clusterConfig ClusterConfig) (err error) {
-	// The current implemention is mainly revolved around using kubectl config commands
-	// and change the context step by step.
-	// Could be improved in the future the create different kubeconfig files
-	// and make it load it directly instead of executing multiple commands
-	contextName := c.getContextName(clusterConfig)
-	c.V(1).Info("Starting kubectl configuration", "name", contextName)
-
+func (k *KubectlConfig) SetContext(clusterConfig ClusterConfig) error {
+	if clusterConfig.Name == "" {
+		return fmt.Errorf("clusterconfig is empty")
+	}
+	// 1. 获取当前的context，保存起来
+	// kubectl config current-context
+	cmd := k.Command("kubectl", "config", "current-context")
 	currentContext := &bytes.Buffer{}
-	cmd := c.Command(kubectl, config, "current-context")
 	cmd.Stdout = currentContext
+	var err error
 	if err = cmd.Run(); err != nil {
-		c.Error(err, "error getting current context")
-		// return
+		return err
 	}
 	defer func() {
 		if err == nil {
-			c.previousContext = strings.TrimSpace(currentContext.String())
-			c.V(1).Info("Storing as previous context", "context", c.previousContext)
+			k.previousContext = strings.TrimSpace(currentContext.String())
 		}
 	}()
-
-	// setting cluster
-	if err = c.Command(kubectl, config, "set-cluster", contextName, "--server", clusterConfig.Rest.Host, "--insecure-skip-tls-verify=true").
-		Run(); err != nil {
-		// log error
-		c.Error(err, "error setting cluster context")
-		return
+	// 2. 从clusterConfig中生成新的context
+	// 2.1 设置cluster
+	// kubectl config set-cluster <contextName> --server <master ip> --insecure-skip-tls-verify=true
+	contextName := k.getContextName(clusterConfig)
+	if err = k.Command(
+		"kubectl",
+		"config",
+		"set-cluster",
+		contextName,
+		"--server",
+		clusterConfig.MasterIP,
+		"--insecure-skip-tls-verify=true").Run(); err != nil {
+		return err
 	}
-	// setting credentials
-	// using berar token only needs to set credentials directly
-	// if cert data needs to load to the file system then creates the credential
-	// otherwise can directly load the credentials
+	// 2.2 设置授权
 	if clusterConfig.Rest.BearerToken != "" {
-		err = c.Command(kubectl, config, "set-credentials", contextName, "--token", clusterConfig.Rest.BearerToken).Run()
+		// kubectl config set-credentials <contextName> --token clusterConfig.Rest.BearerToken
+		if err = k.Command("kubectl",
+			"config",
+			"set-credentials",
+			contextName,
+			"--token",
+			clusterConfig.Rest.BearerToken).Run(); err != nil {
+			return err
+		}
 	} else if clusterConfig.Rest.CertData != nil && clusterConfig.Rest.KeyData != nil {
-		// save as file
-		keyFile := "/tmp/" + contextName + ".key"
-		certFile := "/tmp/" + contextName + ".crt"
-		err = ioutil.WriteFile(keyFile, clusterConfig.Rest.KeyData, 0644)
-		defer os.Remove(keyFile)
-		err = ioutil.WriteFile(certFile, clusterConfig.Rest.CertData, 0644)
-		defer os.Remove(certFile)
-
-		// then use in config and embed
-		err = c.Command(kubectl, config, "set-credentials", contextName, "--embed-certs=true",
-			"--client-key", keyFile,
-			"--client-certificate", certFile,
-		).Run()
-		// remove file
-
-	} else if clusterConfig.Rest.CertFile != "" && clusterConfig.Rest.KeyFile != "" {
-		// embed
-		err = c.Command(kubectl, config, "set-credentials", contextName, "--embed-certs=true",
-			"--client-key", clusterConfig.Rest.KeyFile,
-			"--client-certificate", clusterConfig.Rest.CertFile,
-		).Run()
+		keyFile := fmt.Sprintf("/tmp/%s.key", contextName)
+		certFile := fmt.Sprintf("/tmp/%s.crt", contextName)
+		err = os.WriteFile(keyFile, clusterConfig.Rest.KeyData, 0644)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = os.Remove(keyFile) }()
+		err = os.WriteFile(certFile, clusterConfig.Rest.CertData, 0644)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = os.Remove(certFile) }()
+		// kubectl config set-credentials <contextName> --embed-certs=true --client-key <keyfile> --client-certificate <certfile>
+		if err = k.Command(
+			"kubectl",
+			"config",
+			"set-credentials",
+			contextName,
+			"--embed-certs=true",
+			"--client-key",
+			keyFile,
+			"--client-certificate",
+			certFile).Run(); err != nil {
+			return err
+		}
 	} else {
-		err = fmt.Errorf("Could not find credentials in configuration or credentials method is not supported")
+		return fmt.Errorf("Could not find credentials in config or credential method is not supported")
 	}
-	if err != nil {
-		c.Error(err, "error setting credentials")
-		return
+
+	// 2.3 设置user
+	// kubectl config set-context <contextName> --cluster=<contextName> --user=<contextName>
+	if err = k.Command(
+		"kubectl",
+		"config",
+		"set-context",
+		contextName,
+		fmt.Sprintf("--cluster=%s", contextName),
+		fmt.Sprintf("--user=%s", contextName)).Run(); err != nil {
+		return err
 	}
-	if err = c.Command(kubectl, config, "set-context", contextName, "--cluster="+contextName, "--user="+contextName).Run(); err != nil {
-		c.Error(err, "error setting context")
-		return
+
+	// 3. 切换到新的context
+	// kubectl config use-context <contextName>
+	if err = k.Command(
+		"kubectl",
+		"config",
+		"use-context",
+		contextName).Run(); err != nil {
+		return err
 	}
-	if err = c.Command(kubectl, config, "use-context", contextName).Run(); err != nil {
-		c.Error(err, "error using context")
-		return
-	}
-	return
+
+	return nil
 }
 
-// DeleteContext deletes context from file
-func (c *KubectlConfig) DeleteContext(clusterConfig ClusterConfig) (err error) {
-	contextName := c.getContextName(clusterConfig)
-	c.Command(kubectl, config, "delete-cluster", contextName).Run()
-	c.Command(kubectl, config, "unset", "users."+contextName).Run()
-	c.Command(kubectl, config, "delete-context", contextName).Run()
-
-	if c.previousContext != "" {
-		c.V(1).Info("Switching back context", "context", c.previousContext)
-		c.Command(kubectl, config, "use-context", c.previousContext).Run()
-		c.previousContext = ""
+func (k *KubectlConfig) DeleteContext(clusterConfig ClusterConfig) error {
+	contextName := k.getContextName(clusterConfig)
+	var err error
+	// 1. 删除 cluster
+	// kubectl config delete-cluster <contextName>
+	if err = k.Command(
+		"kubectl",
+		"config",
+		"delete-cluster",
+		contextName).Run(); err != nil {
+		return err
 	}
 
-	return
+	// 2. 删除 user(清空unset)
+	// kubectl config unset users.<contextName>
+	if err = k.Command(
+		"kubectl",
+		"config",
+		"unset",
+		fmt.Sprintf("users.%s", contextName)).Run(); err != nil {
+		return err
+	}
+
+	// 3. 删除context
+	// kubectl config delete-context <contextName>
+	if err = k.Command(
+		"kubectl",
+		"config",
+		"delete-context",
+		contextName).Run(); err != nil {
+		return err
+	}
+
+	// 4. 还原之前的context
+	if k.previousContext != "" {
+		// kubectl config use-context <previousContext>
+		_ = k.Command(
+			"kubectl",
+			"config",
+			"use-context",
+			k.previousContext).Run()
+	}
+
+	return nil
 }
