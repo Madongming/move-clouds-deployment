@@ -137,6 +137,17 @@ func (k *KubectlConfig) SetContext(clusterConfig ClusterConfig) error {
 
 func (k *KubectlConfig) DeleteContext(clusterConfig ClusterConfig) error {
 	contextName := k.getContextName(clusterConfig)
+
+	// 4. 还原之前的context
+	if k.previousContext != "" {
+		// kubectl config use-context <previousContext>
+		_ = k.Command(
+			"kubectl",
+			"config",
+			"use-context",
+			k.previousContext).Run()
+	}
+
 	var err error
 	// 1. 删除 cluster
 	// kubectl config delete-cluster <contextName>
@@ -166,16 +177,6 @@ func (k *KubectlConfig) DeleteContext(clusterConfig ClusterConfig) error {
 		"delete-context",
 		contextName).Run(); err != nil {
 		return err
-	}
-
-	// 4. 还原之前的context
-	if k.previousContext != "" {
-		// kubectl config use-context <previousContext>
-		_ = k.Command(
-			"kubectl",
-			"config",
-			"use-context",
-			k.previousContext).Run()
 	}
 
 	return nil

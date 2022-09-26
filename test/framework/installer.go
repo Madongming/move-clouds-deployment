@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/onsi/ginkgo"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -26,6 +27,8 @@ type Installer struct {
 
 func NewInstaller(config *Config) *Installer {
 	return &Installer{
+		config: config,
+
 		stdout: config.Stdout,
 		stderr: config.Stderr,
 	}
@@ -74,17 +77,18 @@ func (i *Installer) Install(clusterConfig ClusterConfig) error {
 		}
 	}
 
-	// 4. 遍历steps，执行每一个任务的install函数
-	for _, inst := range i.Steps {
-		if err := inst.install(clusterConfig); err != nil {
-			return err
-		}
-	}
-
-	// 5. 设置标准输入输出
+	// 4. 设置标准输入输出
 	for _, inst := range i.Steps {
 		inst.stdout = i.stdout
 		inst.stderr = i.stderr
+	}
+
+	// 5. 遍历steps，执行每一个任务的install函数
+	for _, inst := range i.Steps {
+		ginkgo.By("Install " + inst.Name)
+		if err := inst.install(clusterConfig); err != nil {
+			return err
+		}
 	}
 
 	return nil

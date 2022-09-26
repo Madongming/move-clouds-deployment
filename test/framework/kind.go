@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -81,7 +80,7 @@ func (k *KindProvider) Deploy(config *Config) (ClusterConfig, error) {
 			defer func() { _ = os.Remove("/tmp/kind.config.yaml") }()
 			subCommand = append(subCommand, "--config", "/tmp/kind.config.yaml")
 		}
-		subCommand = append(subCommand, kindConfig.Name)
+		subCommand = append(subCommand, "--name", kindConfig.Name)
 
 		cmd := exec.Command("kind", subCommand...)
 		cmd.Stdout = config.Stdout
@@ -103,7 +102,7 @@ func (k *KindProvider) Deploy(config *Config) (ClusterConfig, error) {
 
 	host, _ := url.Parse(k8sConfig.Rest.Host)
 	if host != nil {
-		k8sConfig.MasterIP = strings.Split(host.Host, ":")[0]
+		k8sConfig.MasterIP = fmt.Sprintf("https://%s", host.Host)
 	}
 
 	return k8sConfig, nil

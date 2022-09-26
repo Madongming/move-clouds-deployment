@@ -1,5 +1,4 @@
 resources:
-- deploy/deploy.yaml
 - certificate.yaml
 
 configurations:

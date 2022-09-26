@@ -104,6 +104,16 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
+.PHONY: wait-manager
+wait-dep: ## Wait Dependencies done
+	kubectl -n cert-manager rollout status deploy/cert-manager --timeout=20m -w  || kubectl -n cert-manager get pods -o wide
+	kubectl -n cert-manager rollout status deploy/cert-manager-cainjector --timeout=20m -w  || kubectl -n cert-manager get pods -o wide
+	kubectl -n cert-manager rollout status deploy/cert-manager-webhook --timeout=40m -w  || kubectl -n cert-manager get pods -o wide
+	kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=40m -w  || kubectl -n ingress-nginx get pods -o wide
+
+wait-deploy: ## Wait deploy done
+	kubectl -n move-clouds-deployment-system rollout status deploy/move-clouds-deployment-controller-manager --timeout=20m -w  || kubectl -n move-clouds-deployment-system get pods -o wide
+
 ##@ Build Dependencies
 
 ## Location to install dependencies to
