@@ -46,10 +46,8 @@ func (k *KubectlConfig) SetContext(clusterConfig ClusterConfig) error {
 	cmd := k.Command("kubectl", "config", "current-context")
 	currentContext := &bytes.Buffer{}
 	cmd.Stdout = currentContext
-	var err error
-	if err = cmd.Run(); err != nil {
-		return err
-	}
+	// Change
+	err := cmd.Run()
 	defer func() {
 		if err == nil {
 			k.previousContext = strings.TrimSpace(currentContext.String())

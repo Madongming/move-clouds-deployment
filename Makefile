@@ -145,7 +145,3 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-.PHONY: wait-deploy
-wait-deploy:
-	kubectl rollout status deploy/devopsx-controller-manager --timeout=5m -w  || kubectl get pods -o wide

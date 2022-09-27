@@ -12,3 +12,6 @@ test/e2e/e2e.xml
 
 # backup file
 *.bak
+
+# test cover
+cover.out

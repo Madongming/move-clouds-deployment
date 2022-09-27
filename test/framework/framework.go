@@ -268,7 +268,8 @@ func (f *Framework) createTestContext(name string, nsCreate bool) (*TestContext,
 
 	// 5.... 其他操作，如创建sa/secret等
 
-	return nil, nil
+	// change
+	return ctx, nil
 }
 
 func (f *Framework) deleteTestContext(ctx *TestContext) error {

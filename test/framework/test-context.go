@@ -1,6 +1,8 @@
 package framework
 
 import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -24,9 +26,15 @@ type TestContext struct {
 type ContextFun func(ctx *TestContext, f *Framework)
 
 func (tc *TestContext) CreateDynamicClient() dynamic.Interface {
-	return dynamic.NewForConfigOrDie(tc.Config)
+	By("Create Dynamic Client")
+	c, err := dynamic.NewForConfig(tc.Config)
+	Expect(err).Should(BeNil())
+	return c
 }
 
 func (tc *TestContext) CreateClientSet() *kubernetes.Clientset {
-	return kubernetes.NewForConfigOrDie(tc.Config)
+	By("Create ClientSet")
+	c, err := kubernetes.NewForConfig(tc.Config)
+	Expect(err).Should(BeNil())
+	return c
 }
